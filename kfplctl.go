@@ -1,24 +1,56 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	sdk "github.com/TenSt/kubeflow-pipelines-sdk"
 )
 
 var client sdk.KfPipelineClient
+var plPtr *string
+var descPtr *string
+var plIDPtr *string
+var eIDPtr *string
+var fileParamsPtr *string
 
 func init() {
-	client = sdk.GetClient("http://188.40.161.99:8888")
+	client = sdk.GetClient("http://188.40.161.51:8888")
+	plPtr = flag.String("pipeline", "", "Filename.")
+	descPtr = flag.String("description", "", "Description.")
+	plIDPtr = flag.String("pipeline-id", "", "Pipeline ID.")
+	eIDPtr = flag.String("experiment-id", "", "Experiment ID.")
+	fileParamsPtr = flag.String("parameters", "", "Filename.")
 }
 
 func main() {
-	// textPtr := flag.String("text", "default", "Text to parse.")
-	// metricPtr := flag.String("metric", "chars", "Metric {chars|words|lines};.")
-	// uniquePtr := flag.Bool("unique", false, "Measure unique values of a metric.")
-	flag.Parse()
+	// params := []sdk.Parameter{
+	// 	{
+	// 		Name:  "model-export-dir",
+	// 		Value: "/mnt/export",
+	// 	},
+	// 	{
+	// 		Name:  "train-steps",
+	// 		Value: "50",
+	// 	},
+	// 	{
+	// 		Name:  "learning-rate",
+	// 		Value: "0.01",
+	// 	},
+	// 	{
+	// 		Name:  "batch-size",
+	// 		Value: "100",
+	// 	},
+	// 	{
+	// 		Name:  "pvc-name",
+	// 		Value: "local-storage",
+	// 	},
+	// }
+	// p, _ := json.Marshal(params)
+	// fmt.Println(string(p))
 
 	switch os.Args[1] {
 	case "get":
@@ -36,7 +68,6 @@ func get() {
 	switch os.Args[2] {
 	case "pipelines":
 		pls := client.GetAllPipelines()
-		// fmt.Println(p)
 		for _, p := range pls.Pipelines {
 			fmt.Println(p.ID)
 		}
@@ -54,34 +85,88 @@ func get() {
 		fmt.Println(r)
 	case "run":
 		r := client.GetRun(os.Args[3])
-		fmt.Println(r)
+		if os.Args[4] == "status" {
+			fmt.Println(r.Run.Status)
+		} else {
+			fmt.Println(r)
+		}
 	}
 }
 
 func delete() {
 	switch os.Args[2] {
 	case "pipeline":
-		p := client.DeletePipeline(os.Args[3])
-		fmt.Println(p)
+		err := client.DeletePipeline(os.Args[3])
+		if err != nil {
+			fmt.Println(err)
+		}
 	case "experiment":
-		e := client.DeleteExperiment(os.Args[3])
-		fmt.Println(e)
+		err := client.DeleteExperiment(os.Args[3])
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }
 
 func create() {
 	switch os.Args[2] {
 	case "experiment":
-		e := client.CreateExperiment("", "")
+		subCommand := flag.NewFlagSet("experiment", flag.ExitOnError)
+		descPtr = subCommand.String("desc", "", "Description.")
+		subCommand.Parse(os.Args[4:])
+		e := client.CreateExperiment(os.Args[3], *descPtr)
 		fmt.Println(e.ID)
 	case "run":
-		r := sdk.Run{}
+		subCommand := flag.NewFlagSet("run", flag.ExitOnError)
+		fileParamsPtr = subCommand.String("parameters", "", "Filename.")
+		descPtr = subCommand.String("desc", "", "Description.")
+		plIDPtr = subCommand.String("pipeline-id", "", "Pipeline ID.")
+		eIDPtr = subCommand.String("experiment-id", "", "Experiment ID.")
+		subCommand.Parse(os.Args[4:])
+		jsonFile, err := os.Open(*fileParamsPtr)
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer jsonFile.Close()
+
+		byteValue, err := ioutil.ReadAll(jsonFile)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		var params *[]sdk.Parameter
+		err = json.Unmarshal(byteValue, &params)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		r := sdk.Run{
+			Name:        os.Args[3],
+			Description: *descPtr,
+			PipelineSpec: sdk.PipelineSpec{
+				PipelineID: *plIDPtr,
+				Parameters: *params,
+			},
+			ResourceReferences: []sdk.ResourceReference{
+				{
+					Key: sdk.ResourceKey{
+						ID:   *eIDPtr,
+						Type: "EXPERIMENT",
+					},
+					Relationship: "OWNER",
+				},
+			},
+		}
+		fmt.Println(r)
 		rDetail := client.CreateRun(r)
 		fmt.Println(rDetail.Run.ID)
 	}
 }
 
 func uploadPipeline() {
-	p := client.UploadPipeline("", "")
+	subCommand := flag.NewFlagSet("upload", flag.ExitOnError)
+	plPtr = subCommand.String("pipeline", "", "Filename.")
+	subCommand.Parse(os.Args[3:])
+	p := client.UploadPipeline(*plPtr, os.Args[2])
 	fmt.Println(p.ID)
 }
