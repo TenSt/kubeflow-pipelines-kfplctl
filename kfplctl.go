@@ -11,47 +11,12 @@ import (
 )
 
 var client sdk.KfPipelineClient
-var plPtr *string
-var descPtr *string
-var plIDPtr *string
-var eIDPtr *string
-var fileParamsPtr *string
 
 func init() {
 	client = sdk.GetClient("http://188.40.161.51:8888")
-	plPtr = flag.String("pipeline", "", "Filename.")
-	descPtr = flag.String("description", "", "Description.")
-	plIDPtr = flag.String("pipeline-id", "", "Pipeline ID.")
-	eIDPtr = flag.String("experiment-id", "", "Experiment ID.")
-	fileParamsPtr = flag.String("parameters", "", "Filename.")
 }
 
 func main() {
-	// params := []sdk.Parameter{
-	// 	{
-	// 		Name:  "model-export-dir",
-	// 		Value: "/mnt/export",
-	// 	},
-	// 	{
-	// 		Name:  "train-steps",
-	// 		Value: "50",
-	// 	},
-	// 	{
-	// 		Name:  "learning-rate",
-	// 		Value: "0.01",
-	// 	},
-	// 	{
-	// 		Name:  "batch-size",
-	// 		Value: "100",
-	// 	},
-	// 	{
-	// 		Name:  "pvc-name",
-	// 		Value: "local-storage",
-	// 	},
-	// }
-	// p, _ := json.Marshal(params)
-	// fmt.Println(string(p))
-
 	switch os.Args[1] {
 	case "get":
 		get()
@@ -112,16 +77,16 @@ func create() {
 	switch os.Args[2] {
 	case "experiment":
 		subCommand := flag.NewFlagSet("experiment", flag.ExitOnError)
-		descPtr = subCommand.String("desc", "", "Description.")
+		descPtr := subCommand.String("desc", "", "Description.")
 		subCommand.Parse(os.Args[4:])
 		e := client.CreateExperiment(os.Args[3], *descPtr)
 		fmt.Println(e.ID)
 	case "run":
 		subCommand := flag.NewFlagSet("run", flag.ExitOnError)
-		fileParamsPtr = subCommand.String("parameters", "", "Filename.")
-		descPtr = subCommand.String("desc", "", "Description.")
-		plIDPtr = subCommand.String("pipeline-id", "", "Pipeline ID.")
-		eIDPtr = subCommand.String("experiment-id", "", "Experiment ID.")
+		fileParamsPtr := subCommand.String("parameters", "", "Filename.")
+		descPtr := subCommand.String("desc", "", "Description.")
+		plIDPtr := subCommand.String("pipeline-id", "", "Pipeline ID.")
+		eIDPtr := subCommand.String("experiment-id", "", "Experiment ID.")
 		subCommand.Parse(os.Args[4:])
 		jsonFile, err := os.Open(*fileParamsPtr)
 		if err != nil {
@@ -165,7 +130,7 @@ func create() {
 
 func uploadPipeline() {
 	subCommand := flag.NewFlagSet("upload", flag.ExitOnError)
-	plPtr = subCommand.String("pipeline", "", "Filename.")
+	plPtr := subCommand.String("pipeline", "", "Filename.")
 	subCommand.Parse(os.Args[3:])
 	p := client.UploadPipeline(*plPtr, os.Args[2])
 	fmt.Println(p.ID)
