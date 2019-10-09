@@ -122,7 +122,7 @@ func create() {
 				},
 			},
 		}
-		fmt.Println(r)
+		// fmt.Println(r)
 		rDetail := client.CreateRun(r)
 		fmt.Println(rDetail.Run.ID)
 	}
