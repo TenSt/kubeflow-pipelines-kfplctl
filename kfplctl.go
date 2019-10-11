@@ -34,11 +34,25 @@ func get() {
 	case "pipelines":
 		pls := client.GetAllPipelines()
 		for _, p := range pls.Pipelines {
-			fmt.Println(p.ID)
+			fmt.Println(p)
 		}
 	case "pipeline":
-		p := client.GetPipeline(os.Args[3])
-		fmt.Println(p)
+		subCommand := flag.NewFlagSet("pipeline", flag.ExitOnError)
+		namePtr := subCommand.String("name", "default", "Name of the pipeline.")
+		subCommand.Parse(os.Args[3:])
+		if *namePtr != "default" {
+			pls := client.GetAllPipelines()
+			for _, p := range pls.Pipelines {
+				if p.Name == *namePtr {
+					fmt.Println(p.ID)
+				}
+			}
+		} else {
+			p := client.GetPipeline(os.Args[3])
+			if p.ID != "" {
+				fmt.Println(p)
+			}
+		}
 	case "experiments":
 		e := client.GetAllExperiments()
 		fmt.Println(e)
