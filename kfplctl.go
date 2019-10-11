@@ -54,11 +54,25 @@ func get() {
 			}
 		}
 	case "experiments":
-		e := client.GetAllExperiments()
-		fmt.Println(e)
+		es := client.GetAllExperiments()
+		fmt.Println(es)
 	case "experiment":
-		e := client.GetExperiment(os.Args[3])
-		fmt.Println(e)
+		subCommand := flag.NewFlagSet("experiment", flag.ExitOnError)
+		namePtr := subCommand.String("name", "default", "Name of the pipeline.")
+		subCommand.Parse(os.Args[3:])
+		if *namePtr != "default" {
+			es := client.GetAllExperiments()
+			for _, e := range es.Experiments {
+				if e.Name == *namePtr {
+					fmt.Println(e.ID)
+				}
+			}
+		} else {
+			e := client.GetExperiment(os.Args[3])
+			if e.ID != "" {
+				fmt.Println(e)
+			}
+		}
 	case "runs":
 		r := client.GetAllRuns()
 		fmt.Println(r)
